@@ -4,7 +4,7 @@ import boto3
 
 client = boto3.client("apigatewaymanagementapi", endpoint_url=os.environ["ENDPOINT_URL"])
 ddb = boto3.resource("dynamodb")
-table = ddb.Table(os.environ("TABLE_NAME"))
+table = ddb.Table(os.environ["TABLE_NAME"])
 
 def handler(event,context):
     print(event)
