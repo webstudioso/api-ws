@@ -3,6 +3,7 @@ import { EndpointType } from 'aws-cdk-lib/aws-apigateway';
 import { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { Effect } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
+import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 import * as path from 'path';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -83,7 +84,7 @@ export class ApiWsStack extends cdk.Stack {
       memorySize: 256,
       environment: {
         TABLE_NAME: table.tableName,
-        ENDPOINT_URL: `https://${api.ref}.execute-api.${this.region}.amazon.com/dev`
+        ENDPOINT_URL: `https://${api.ref}.execute-api.${this.region}.amazonaws.com/dev`
       },
       initialPolicy: [
         new cdk.aws_iam.PolicyStatement({
@@ -181,63 +182,35 @@ export class ApiWsStack extends cdk.Stack {
     const certificateArn = process.env.ACM_ARN || ""
     const domainName = process.env.ROOT_DOMAIN || "";
     const customDomainName = `wsapi.${domainName}`;
-    const zone = HostedZone.fromLookup(this, 'HostedZone', { domainName });
+    const zone = HostedZone.fromLookup(this, 'baseZone', { domainName });
   
     const domain = new cdk.aws_apigatewayv2.CfnDomainName(this, "apigatewaydomainsocket", {
-      domainName,
+      domainName: customDomainName,
       domainNameConfigurations:[{
         certificateArn: certificateArn,
-        endpointType: 'REGIONAL'
+        endpointType: 'REGIONAL',
       }]
     });
     
-    const apiMapping = new cdk.aws_apigatewayv2.CfnApiMapping(this, "swapiMapping", {
+    const apiMapping = new cdk.aws_apigatewayv2.CfnApiMapping(this, "wsapiMapping", {
       domainName: domain.ref,
       apiId: api.ref,
       stage: stage.ref
     });
+    apiMapping.addDependency(domain);
 
-    // const zone = new cdk.aws_route53.PublicHostedZone(this, 'HostedZone', {
-    //   zoneName: domainName
-    // });
-    
-    const route = new cdk.aws_route53.CnameRecord(this, "wsapiRoute", {
-      recordName: "wsapi",
+    new cdk.aws_route53.ARecord(this, 'wsapiDNS', {
+      recordName: 'wsapi',
       zone,
-      domainName: domain.attrRegionalDomainName
+      target: cdk.aws_route53.RecordTarget.fromAlias(
+        new ApiGatewayv2DomainProperties(domain.attrRegionalDomainName, domain.attrRegionalHostedZoneId),
+      ),
     });
-
-    // const certificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(this, 'wsapi-cert', certificateArn)
-
-    // const domainName = new cdk.aws_apigateway.DomainName(this, 'DomainName', {
-    //   domainName: customDomainName,
-    //   certificate
-    //   // certificate
-    // });
-
-    // const mapping = new cdk.aws_apigatewayv2.CfnApiMapping(this, 'Mapping', {
-    //   apiId: api.ref,
-    //   stage: stage.stageName,
-    //   domainName: domainName.domainName
-    // });
-    // mapping.addDependency(domainName);
-
-    // new cdk.aws_route53.ARecord(this, "wsapiDNS", {
-    //   zone,
-    //   recordName: 'wsapi',
-    //   target: cdk.aws_route53.RecordTarget.fromAlias({
-    //     bind: (_record) => ({
-    //       hostedZoneId: zone.hostedZoneId,
-    //       dnsName: api.ref,
-    //     }),
-    //   }),
-    // });
 
     // output
     new cdk.CfnOutput(this, "wssEndpoint", {
       exportName: "wssEndpoint",
-      value: `wss://${customDomainName}`
-      // value:`wss://${api.ref}.execute-api.${this.region}.amazon.com/dev`
+      value:`wss://${api.ref}.execute-api.${this.region}.amazonaws.com/dev`
     })
   }
 }
