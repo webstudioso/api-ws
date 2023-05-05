@@ -1,12 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
-import { EndpointType } from 'aws-cdk-lib/aws-apigateway';
-import { ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { Effect } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 import * as path from 'path';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 const StackProps = { 
   env: { 
@@ -49,11 +46,12 @@ export class ApiWsStack extends cdk.Stack {
       functionName: 'WSConnectLambda',
       code: cdk.aws_lambda.Code.fromAsset(path.join(__dirname, './../lambda')),
       handler: 'connect.handler',
-      runtime: cdk.aws_lambda.Runtime.PYTHON_3_8,
+      runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
       timeout: cdk.Duration.seconds(300),
       memorySize: 512,
       environment: {
-        TABLE_NAME: table.tableName
+        TABLE_NAME: table.tableName,
+        REGION: this.region
       }
     });
 
@@ -64,11 +62,12 @@ export class ApiWsStack extends cdk.Stack {
       functionName: 'WSDisconnectLambda',
       code: cdk.aws_lambda.Code.fromAsset(path.join(__dirname, './../lambda')),
       handler: 'disconnect.handler',
-      runtime: cdk.aws_lambda.Runtime.PYTHON_3_8,
+      runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
       timeout: cdk.Duration.seconds(300),
       memorySize: 512,
       environment: {
-        TABLE_NAME: table.tableName
+        TABLE_NAME: table.tableName,
+        REGION: this.region
       }
     });
 
@@ -79,12 +78,14 @@ export class ApiWsStack extends cdk.Stack {
       functionName: 'WSMessageLambda',
       code: cdk.aws_lambda.Code.fromAsset(path.join(__dirname, './../lambda')),
       handler: 'message.handler',
-      runtime: cdk.aws_lambda.Runtime.PYTHON_3_8,
+      runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
       timeout: cdk.Duration.seconds(300),
       memorySize: 256,
       environment: {
         TABLE_NAME: table.tableName,
-        ENDPOINT_URL: `https://${api.ref}.execute-api.${this.region}.amazonaws.com/dev`
+        ENDPOINT_URL: `https://${api.ref}.execute-api.${this.region}.amazonaws.com/dev`,
+        REGION: this.region,
+        CHATGPT_API: process.env.CHATGPT_API || ''
       },
       initialPolicy: [
         new cdk.aws_iam.PolicyStatement({

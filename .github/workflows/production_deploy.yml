@@ -24,7 +24,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-webstudio-api
       - name: Install dependencies
-        run: npm i; cd resources; npm i
+        run: npm i; cd lambda; npm i
       - name: cdk deploy
         uses: youyo/aws-cdk-github-actions@v2
         with:
@@ -38,4 +38,5 @@ jobs:
           ACM_ARN: ${{ secrets.ACM_ARN }}
           AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
+          CHATGPT_API: ${{ secrets.CHATGPT_API }}
           ROOT_DOMAIN: webstudio.so
