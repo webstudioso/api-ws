@@ -23,6 +23,7 @@ exports.handler = async (event) => {
     endpoint: process.env.ENDPOINT_URL,
   });
 
+  console.log(`Received ${JSON.stringify(event)}`)
   const postData = JSON.parse(event.body).data;
   const connectionId = event["requestContext"]["connectionId"];
 
