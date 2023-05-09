@@ -4,10 +4,7 @@ const AWS = require('aws-sdk');
 
 
 const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
-const systemMessage = `You are a css specialist on tailwind. We only support tailwind css. Be super concise.
-Reply to users with the list of classes needed to add their behavior. For example if they ask for a large text with blue background you
-can reply with the format \`text-lg bg-blue-500\` include them always in
-`;
+const systemMessage = `You are a website builder assistant using only html and tailwind css. Respect markdown MD. don't reply words outside 1 code snippet, only show final result.`;
 
 exports.handler = async (event) => {
   const { ChatGPTAPI } = await import("chatgpt");
@@ -24,12 +21,17 @@ exports.handler = async (event) => {
   });
 
   console.log(`Received ${JSON.stringify(event)}`)
-  const postData = JSON.parse(event.body).data;
-  const connectionId = event["requestContext"]["connectionId"];
 
   try {
-    const res = await api.sendMessage(postData.toString(), { systemMessage })
-    await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: res.text }).promise();
+    const received = JSON.parse(event.body);
+    const connectionId = event["requestContext"]["connectionId"];
+    const response = await api.sendMessage(received.text, { systemMessage, parentMessageId: received.parentMessageId });
+    const reply = JSON.stringify({
+      text: response.text,
+      parentMessageId: response.parentMessageId
+    });
+    console.log(`Replying ${reply}`);
+    await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: reply }).promise();
   } catch (e) {
     if (e.statusCode === 410) {
       console.log(`Found stale connection, deleting ${connectionId}`);
