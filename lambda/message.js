@@ -26,11 +26,11 @@ exports.handler = async (event) => {
     const received = JSON.parse(event.body);
     const connectionId = event["requestContext"]["connectionId"];
     const response = await api.sendMessage(received.text, { systemMessage, parentMessageId: received.parentMessageId });
-    const reply = {
+    const reply = JSON.stringify({
       text: response.text,
       parentMessageId: response.parentMessageId
-    };
-    console.log(`Replying ${JSON.stringify(reply)}`);
+    });
+    console.log(`Replying ${reply}`);
     await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: reply }).promise();
   } catch (e) {
     if (e.statusCode === 410) {
