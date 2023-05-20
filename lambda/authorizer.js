@@ -1,10 +1,10 @@
 const { Magic } = require('@magic-sdk/admin');
 const mAdmin = new Magic(process.env.MAGIC);
 
-exports.main = async (event, context) => {
+exports.handler = async (event, context) => {
 
     let policyAccess = 'Deny';
-    const DIDToken = event.authorizationToken.substring(7);
+    const DIDToken = event?.queryStringParameters?.token;
     try {
       mAdmin.token.validate(DIDToken);
       policyAccess = 'Allow';

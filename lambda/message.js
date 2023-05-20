@@ -1,14 +1,14 @@
 
 const AWS = require('aws-sdk');
-const { ChatGPTAPI } = await import("chatgpt");
-let api = new ChatGPTAPI({
-  apiKey: process.env.CHATGPT_API,
-  model: "gpt-3.5-turbo",
-});
 
 const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
 
 exports.handler = async (event) => {
+  const { ChatGPTAPI } = await import("chatgpt");
+  let api = new ChatGPTAPI({
+    apiKey: process.env.CHATGPT_API,
+    model: "gpt-3.5-turbo",
+  });
   const tableName = process.env.TABLE_NAME;
 
   const apigwManagementApi = new AWS.ApiGatewayManagementApi({

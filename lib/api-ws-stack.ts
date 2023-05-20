@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { TokenAuthorizer } from 'aws-cdk-lib/aws-apigateway';
 import { CfnAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2';
-import { Effect } from 'aws-cdk-lib/aws-iam';
+import { Effect, PolicyDocument } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
@@ -47,12 +47,31 @@ export class ApiWsStack extends cdk.Stack {
       }
     });
 
+    // role for APIG to access lambdas
+    const role = new cdk.aws_iam.Role(this, "RoleForAPIGToInvokeLambda", {
+      roleName:"InvokeLambdaRoleForApiGw",
+      assumedBy: new cdk.aws_iam.ServicePrincipal("apigateway.amazonaws.com"),
+      inlinePolicies: {
+          allowLambdaInvocation: PolicyDocument.fromJson({
+              Version: '2012-10-17',
+              Statement: [
+                  {
+                      Effect: 'Allow',
+                      Action: ['lambda:InvokeFunction', 'lambda:InvokeAsync'],
+                      Resource: `arn:aws:lambda:${process.env.REGION}:${process.env.ACCOUNT}:function:*`,
+                  },
+              ],
+          }),
+      },
+    });
+
     const wsAuthorizer = new CfnAuthorizer(this, 'WSAuthorizer', {
       name: 'wsAuthorizer',
-      apiId: api.attrApiId,
+      apiId: api.ref,
       authorizerType: 'REQUEST',
       authorizerUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${authorizerFn.functionArn}/invocations`,
       identitySource: ['route.request.querystring.token'],
+      authorizerCredentialsArn: role.roleArn,
     });
   
     // table
@@ -124,11 +143,20 @@ export class ApiWsStack extends cdk.Stack {
 
     table.grantReadWriteData(messageLambda);
 
-    // role for APIG to access lambdas
-    const role = new cdk.aws_iam.Role(this, "RoleForAPIGToInvokeLambda", {
-      roleName:"InvokeLambdaRoleForApiGw",
-      assumedBy: new cdk.aws_iam.ServicePrincipal("apigateway.amazonaws.com")
-    });
+    role.addToPolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: [
+          'logs:CreateLogGroup',
+          'logs:CreateLogStream',
+          'logs:DescribeLogGroups',
+          'logs:DescribeLogStreams',
+          'logs:PutLogEvents',
+          'logs:GetLogEvents',
+          'logs:FilterLogEvents'
+        ],
+        resources: ['*']
+      })
+    );
 
     role.addToPolicy(
       new cdk.aws_iam.PolicyStatement({
@@ -136,7 +164,8 @@ export class ApiWsStack extends cdk.Stack {
         resources: [
           connectLambda.functionArn,
           disconnectLambda.functionArn,
-          messageLambda.functionArn
+          messageLambda.functionArn,
+          authorizerFn.functionArn
         ],
         actions: ["lambda:InvokeFunction"]
       })
@@ -147,6 +176,14 @@ export class ApiWsStack extends cdk.Stack {
       apiId: api.ref,
       integrationType: "AWS_PROXY",
       integrationUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${connectLambda.functionArn}/invocations`,
+      credentialsArn: role.roleArn
+    });
+
+    // authorizer integration
+    const authorizerIntegration = new cdk.aws_apigatewayv2.CfnIntegration(this, "AuthorizerLambdaIntegration", {
+      apiId: api.ref,
+      integrationType: "AWS_PROXY",
+      integrationUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${authorizerFn.functionArn}/invocations`,
       credentialsArn: role.roleArn
     });
 
@@ -201,6 +238,8 @@ export class ApiWsStack extends cdk.Stack {
       autoDeploy: true
     })
 
+
+    deployment.node.addDependency(authorizerFn)
     // we need 3 routes ready before deployment
     deployment.node.addDependency(connectRoute)
     deployment.node.addDependency(disconnectRoute)
