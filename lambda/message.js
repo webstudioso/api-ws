@@ -1,10 +1,7 @@
 
 const AWS = require('aws-sdk');
 
-
-
 const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
-const systemMessage = `You are a website builder assistant using only html and tailwind css. Respect markdown MD. don't reply words outside 1 code snippet, only show final result.`;
 
 exports.handler = async (event) => {
   const { ChatGPTAPI } = await import("chatgpt");
@@ -12,7 +9,6 @@ exports.handler = async (event) => {
     apiKey: process.env.CHATGPT_API,
     model: "gpt-3.5-turbo",
   });
-
   const tableName = process.env.TABLE_NAME;
 
   const apigwManagementApi = new AWS.ApiGatewayManagementApi({
@@ -21,6 +17,10 @@ exports.handler = async (event) => {
   });
 
   console.log(`Received ${JSON.stringify(event)}`)
+  const received = JSON.parse(event.body);
+  const systemMessage = `You are a website builder assistant using only html and tailwind css. 
+                         Respect markdown MD. don't reply words outside 1 code snippet, 
+                         only show final result. Reply in languge ${received.locale || 'en'}`;
 
   try {
     const received = JSON.parse(event.body);
