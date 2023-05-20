@@ -1,4 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
+import { TokenAuthorizer } from 'aws-cdk-lib/aws-apigateway';
+import { CfnAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2';
 import { Effect } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
@@ -21,6 +23,9 @@ export class ApiWsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, StackProps);
 
+    const key = "APIKey";
+    const secret = cdk.aws_secretsmanager.Secret.fromSecretNameV2(this, key, key);
+  
     // table
     const api = new cdk.aws_apigatewayv2.CfnApi(this, 'WebstudioWSAPI', {
       name: 'WebstudioWSAPI',
@@ -29,6 +34,27 @@ export class ApiWsStack extends cdk.Stack {
       routeSelectionExpression: '$request.body.action',
     });
 
+    // Authorizer
+    const authorizerFn = new cdk.aws_lambda.Function(this, "BasicWSAuthAuthorizer", {
+      functionName: 'BasicWSAuthAuthorizer',
+      code: cdk.aws_lambda.Code.fromAsset(path.join(__dirname, './../lambda')),
+      handler: 'authorizer.handler',
+      runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
+      timeout: cdk.Duration.seconds(300),
+      memorySize: 512,
+      environment: {
+        MAGIC: secret.secretValueFromJson(key).unsafeUnwrap()
+      }
+    });
+
+    const wsAuthorizer = new CfnAuthorizer(this, 'WSAuthorizer', {
+      name: 'wsAuthorizer',
+      apiId: api.attrApiId,
+      authorizerType: 'REQUEST',
+      authorizerUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${authorizerFn.functionArn}/invocations`,
+      identitySource: ['route.request.querystring.token'],
+    });
+  
     // table
     const table = new cdk.aws_dynamodb.Table(this, 'Connections', {
       tableName: 'Connections',
@@ -144,7 +170,8 @@ export class ApiWsStack extends cdk.Stack {
     const connectRoute = new cdk.aws_apigatewayv2.CfnRoute(this, "ConnectRoute", {
       apiId: api.ref,
       routeKey: "$connect",
-      authorizationType: "NONE",
+      authorizerId: wsAuthorizer.ref,
+      authorizationType: 'CUSTOM',
       target: `integrations/${connectIntegration.ref}`
     });
 
