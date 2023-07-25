@@ -32,6 +32,7 @@ exports.handler = async (event) => {
   `;
 
   const connectionId = event["requestContext"]["connectionId"];
+  console.log(`ConnectionId ${connectionId}`)
   try {
     const received = JSON.parse(event.body);
     console.log(`Received ${event.body} message parsed`)
@@ -48,6 +49,7 @@ exports.handler = async (event) => {
       console.log(`Found stale connection, deleting ${connectionId}`);
       await ddb.delete({ TableName: tableName, Key: { ConnectionId: connectionId } }).promise();
     } else {
+      console.log(`Returning message: ${e.message}`)
       await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: e.message }).promise();
     }
   }
