@@ -7,7 +7,11 @@ exports.handler = async (event) => {
   const { ChatGPTAPI } = await import("chatgpt");
   let api = new ChatGPTAPI({
     apiKey: process.env.CHATGPT_API,
-    model: "gpt-3.5-turbo",
+    completionParams: {
+      model: 'gpt-3.5-turbo-0301',
+      max_tokens: 3950,
+      temperature: 0.8
+    }
   });
   const tableName = process.env.TABLE_NAME;
 
@@ -18,9 +22,14 @@ exports.handler = async (event) => {
 
   console.log(`Received ${JSON.stringify(event)}`)
   const received = JSON.parse(event.body);
-  const systemMessage = `You are a website builder assistant using only html and tailwind css. 
-                         Respect markdown MD. don't reply words outside 1 code snippet, 
-                         only show final result. Reply in languge ${received.locale || 'en'}`;
+  const systemMessage = `
+      Create a landing page template using only html and tailwindcss. 
+      Only use inline css within html elements. 
+      Do not include explanations outside code. 
+      Do not include additional imports except tailwindcss.
+      Include real random images related to content.
+      Reply in languge ${received.locale || 'en'}
+  `;
 
   try {
     const received = JSON.parse(event.body);
