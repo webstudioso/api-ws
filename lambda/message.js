@@ -9,7 +9,7 @@ exports.handler = async (event) => {
     apiKey: process.env.CHATGPT_API,
     completionParams: {
       model: 'gpt-3.5-turbo-0301',
-      max_tokens: 3950,
+      max_tokens: 4050,
       temperature: 0.8
     }
   });
@@ -46,7 +46,7 @@ exports.handler = async (event) => {
       console.log(`Found stale connection, deleting ${connectionId}`);
       await ddb.delete({ TableName: tableName, Key: { ConnectionId: connectionId } }).promise();
     } else {
-      throw e;
+      await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: e.message }).promise();
     }
   }
 
