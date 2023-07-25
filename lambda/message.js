@@ -31,9 +31,9 @@ exports.handler = async (event) => {
       Reply in languge ${received.locale || 'en'}
   `;
 
+  const connectionId = event["requestContext"]["connectionId"];
   try {
     const received = JSON.parse(event.body);
-    const connectionId = event["requestContext"]["connectionId"];
     const response = await api.sendMessage(received.text, { systemMessage, parentMessageId: received.parentMessageId });
     const reply = JSON.stringify({
       text: response.text,
