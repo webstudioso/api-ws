@@ -9,7 +9,7 @@ exports.handler = async (event) => {
     apiKey: process.env.CHATGPT_API,
     completionParams: {
       model: 'gpt-3.5-turbo-0301',
-      max_tokens: 4050,
+      max_tokens: 3500,
       temperature: 0.8
     }
   });
