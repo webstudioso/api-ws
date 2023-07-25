@@ -34,6 +34,7 @@ exports.handler = async (event) => {
   const connectionId = event["requestContext"]["connectionId"];
   try {
     const received = JSON.parse(event.body);
+    console.log(`Received ${event.body} message parsed`)
     const response = await api.sendMessage(received.text, { systemMessage, parentMessageId: received.parentMessageId });
     const reply = JSON.stringify({
       text: response.text,
@@ -42,6 +43,7 @@ exports.handler = async (event) => {
     console.log(`Replying ${reply}`);
     await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: reply }).promise();
   } catch (e) {
+    console.log(e)
     if (e.statusCode === 410) {
       console.log(`Found stale connection, deleting ${connectionId}`);
       await ddb.delete({ TableName: tableName, Key: { ConnectionId: connectionId } }).promise();
