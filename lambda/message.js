@@ -25,7 +25,7 @@ exports.handler = async (event) => {
   const systemMessage = `
       Create a fully responsive landing page template using only html and tailwindcss. 
       Only use inline css within html elements and use default light theme from tailwind unless specified. 
-      Do not include explanations outside code. 
+      Do not include explanations or notes, only one code snippet. 
       Do not include additional imports except tailwindcss.
       Include real random images related to content.
       Reply in languge ${received.locale || 'en'}
