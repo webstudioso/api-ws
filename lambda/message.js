@@ -24,7 +24,7 @@ exports.handler = async (event) => {
   const received = JSON.parse(event.body);
   const systemMessage = `
       Create a landing page template using only html and tailwindcss. 
-      Only use inline css within html elements. 
+      Only use inline css within html elements and use default light theme from tailwind unless specified. 
       Do not include explanations outside code. 
       Do not include additional imports except tailwindcss.
       Include real random images related to content.
