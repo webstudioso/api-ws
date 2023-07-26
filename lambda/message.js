@@ -23,12 +23,11 @@ exports.handler = async (event) => {
   console.log(`Received ${JSON.stringify(event)}`)
   const received = JSON.parse(event.body);
   const systemMessage = `
-      Create a fully responsive landing page template using only html and tailwindcss. 
-      Only use inline css within html elements and use default light theme from tailwind unless specified. 
-      Do not include explanations or notes, only one code snippet. 
-      Do not include additional imports except tailwindcss.
-      Include real random images related to content.
+      Create a responsive landing page using only html and tailwind inline css styles.
+      Import only tailwind.
+      Add real random images related to topic.
       Reply in languge ${received.locale || 'en'}
+      Do not add explanation.
   `;
 
   const connectionId = event["requestContext"]["connectionId"];
