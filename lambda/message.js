@@ -23,7 +23,7 @@ exports.handler = async (event) => {
   console.log(`Received ${JSON.stringify(event)}`)
   const received = JSON.parse(event.body);
   const systemMessage = `
-      Create a landing page template using only html and tailwindcss. 
+      Create a fully responsive landing page template using only html and tailwindcss. 
       Only use inline css within html elements and use default light theme from tailwind unless specified. 
       Do not include explanations outside code. 
       Do not include additional imports except tailwindcss.
