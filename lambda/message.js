@@ -7,7 +7,11 @@ exports.handler = async (event) => {
   const { ChatGPTAPI } = await import("chatgpt");
   let api = new ChatGPTAPI({
     apiKey: process.env.CHATGPT_API,
-    model: "gpt-3.5-turbo",
+    completionParams: {
+      model: 'gpt-3.5-turbo-0301',
+      max_tokens: 3500,
+      temperature: 0.8
+    }
   });
   const tableName = process.env.TABLE_NAME;
 
@@ -18,13 +22,21 @@ exports.handler = async (event) => {
 
   console.log(`Received ${JSON.stringify(event)}`)
   const received = JSON.parse(event.body);
-  const systemMessage = `You are a website builder assistant using only html and tailwind css. 
-                         Respect markdown MD. don't reply words outside 1 code snippet, 
-                         only show final result. Reply in languge ${received.locale || 'en'}`;
+  const systemMessage = `
+      Build a fully responsive landing page using only html and tailwind inline css styles.
+      Include html, head and body tags.
+      Do not add explanations or notes.
+      'Only write code'
+      Import only tailwind library.
+      Add real random images related to topic.
+      Reply in languge ${received.locale || 'en'}
+  `;
 
+  const connectionId = event["requestContext"]["connectionId"];
+  console.log(`ConnectionId ${connectionId}`)
   try {
     const received = JSON.parse(event.body);
-    const connectionId = event["requestContext"]["connectionId"];
+    console.log(`Received ${event.body} message parsed`)
     const response = await api.sendMessage(received.text, { systemMessage, parentMessageId: received.parentMessageId });
     const reply = JSON.stringify({
       text: response.text,
@@ -33,11 +45,13 @@ exports.handler = async (event) => {
     console.log(`Replying ${reply}`);
     await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: reply }).promise();
   } catch (e) {
+    console.log(e)
     if (e.statusCode === 410) {
       console.log(`Found stale connection, deleting ${connectionId}`);
       await ddb.delete({ TableName: tableName, Key: { ConnectionId: connectionId } }).promise();
     } else {
-      throw e;
+      console.log(`Returning message: ${e.message}`)
+      await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: e.message }).promise();
     }
   }
 
