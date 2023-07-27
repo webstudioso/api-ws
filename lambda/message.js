@@ -23,7 +23,7 @@ exports.handler = async (event) => {
   console.log(`Received ${JSON.stringify(event)}`)
   const received = JSON.parse(event.body);
   const systemMessage = `
-      Build a landing page using only html and tailwind inline css styles.
+      Build a fully responsive landing page using only html and tailwind inline css styles.
       Include html, head and body tags.
       Do not add explanations or notes.
       'Only write code'
